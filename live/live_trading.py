@@ -7,6 +7,10 @@ import numpy as np
 from datetime import datetime, timedelta
 from utils.angel_one_api import AngelOneAPI
 from utils.logger import get_logger
+from envs.option_trading_env import OptionTradingEnv
+from agents.dqn_agent import DQNAgent
+from agents.ppo_agent import PPOAgent
+from agents.ensemble_manager import EnsembleManager
 
 logger = get_logger("LiveTrading")
 
@@ -45,9 +49,57 @@ class LiveTradingEngine:
 
     def load_agent(self):
         logger.info("Loading agent and checkpoint...")
-        self.agent = self.agent_class(**self.config.get("agent", {}))
+
+        # Temporary environment to determine state/action dimensions
+        dummy_df = pd.DataFrame({
+            "open": [1, 1],
+            "high": [1, 1],
+            "low": [1, 1],
+            "close": [1, 1],
+            "volume": [1, 1],
+            "strike": [1, 1],
+            "expiry": [pd.to_datetime("now"), pd.to_datetime("now")],
+            "option_type": ["CE", "CE"],
+            "iv": [0.2, 0.2],
+            "days_to_expiry": [1, 1],
+            "risk_free_rate": [0.06, 0.06],
+            "minutes_to_close": [30, 29],
+        })
+
+        tmp_env = self.env_class(
+            data=dummy_df,
+            config=self.market,
+            risk_config=self.risk_cfg,
+            features_config=self.features_cfg,
+            mode="live",
+        )
+
+        agent_cfg = self.config.get("agent", {})
+        t = agent_cfg.get("type", "dqn").lower()
+        if t == "dqn":
+            self.agent = DQNAgent(state_dim=tmp_env.state_dim, action_dim=tmp_env.action_space.n, config=agent_cfg)
+        elif t == "ppo":
+            self.agent = PPOAgent(state_dim=tmp_env.state_dim, action_dim=tmp_env.action_space.n, config=agent_cfg)
+            self.agent.set_env(tmp_env)
+        elif t == "ensemble":
+            dqn = DQNAgent(state_dim=tmp_env.state_dim, action_dim=tmp_env.action_space.n, config=agent_cfg)
+            ppo = PPOAgent(state_dim=tmp_env.state_dim, action_dim=tmp_env.action_space.n, config=agent_cfg)
+            ppo.set_env(tmp_env)
+            ens_cfg = agent_cfg.get("ensemble", {})
+            self.agent = EnsembleManager(
+                agent_dict={"dqn": dqn, "ppo": ppo},
+                voting=ens_cfg.get("voting", "weighted"),
+                weights=ens_cfg.get("weights", {"dqn": 0.5, "ppo": 0.5}),
+            )
+        else:
+            self.agent = self.agent_class(state_dim=tmp_env.state_dim, action_dim=tmp_env.action_space.n, config=agent_cfg)
+
+        # Load checkpoint after initialization if available
         try:
-            self.agent.load_checkpoint()
+            if hasattr(self.agent, "load_checkpoint"):
+                self.agent.load_checkpoint()
+            elif hasattr(self.agent, "load_checkpoint_if_exists"):
+                self.agent.load_checkpoint_if_exists()
             logger.info("Loaded latest agent checkpoint.")
         except Exception as e:
             logger.warning(f"Could not load agent checkpoint: {e}")
