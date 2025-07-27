@@ -1,0 +1,4 @@
+data/historical_data.csv
+logs/backtest_audit.csv
+logs/bot.log
+logs/

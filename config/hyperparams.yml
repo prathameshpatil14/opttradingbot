@@ -1,0 +1,185 @@
+# config/hyperparams.yml
+
+# ========= DQN Hyperparameter Search =========
+dqn:
+  lr:
+    type: loguniform
+    low: 1e-5
+    high: 1e-3
+    default: 0.0005
+  gamma:
+    type: uniform
+    low: 0.95
+    high: 0.999
+    default: 0.99
+  batch_size:
+    type: categorical
+    choices: [32, 64, 128]
+    default: 64
+  epsilon_decay:
+    type: uniform
+    low: 0.990
+    high: 0.9999
+    default: 0.995
+  tau:
+    type: uniform
+    low: 0.001
+    high: 0.02
+    default: 0.005
+  update_target_every:
+    type: categorical
+    choices: [100, 250, 500, 1000]
+    default: 500
+  num_quantiles:
+    type: categorical
+    choices: [32, 51, 101]
+    default: 51
+  buffer_size:
+    type: int
+    low: 20000
+    high: 200000
+    default: 100000
+  prioritized_replay:
+    type: categorical
+    choices: [true, false]
+    default: true
+
+# ========= PPO Hyperparameter Search =========
+ppo:
+  lr:
+    type: loguniform
+    low: 1e-5
+    high: 5e-4
+    default: 0.0003
+  gamma:
+    type: uniform
+    low: 0.95
+    high: 0.999
+    default: 0.99
+  n_steps:
+    type: categorical
+    choices: [1024, 2048, 4096]
+    default: 2048
+  batch_size:
+    type: categorical
+    choices: [32, 64, 128]
+    default: 64
+  ent_coef:
+    type: uniform
+    low: 0.0
+    high: 0.05
+    default: 0.01
+  policy_kwargs_net_arch:
+    type: categorical
+    choices: [[128, 128], [256, 256], [256, 128], [512, 256]]
+    default: [256, 256]
+
+# ========= A2C Hyperparameter Search =========
+a2c:
+  lr:
+    type: loguniform
+    low: 1e-5
+    high: 1e-3
+    default: 0.0003
+  gamma:
+    type: uniform
+    low: 0.95
+    high: 0.999
+    default: 0.99
+  n_steps:
+    type: categorical
+    choices: [5, 10, 20]
+    default: 5
+  ent_coef:
+    type: uniform
+    low: 0.0
+    high: 0.02
+    default: 0.01
+
+# ========= C51 Hyperparameter Search =========
+c51:
+  lr:
+    type: loguniform
+    low: 1e-5
+    high: 1e-3
+    default: 0.0003
+  gamma:
+    type: uniform
+    low: 0.95
+    high: 0.999
+    default: 0.99
+  batch_size:
+    type: categorical
+    choices: [32, 64, 128]
+    default: 64
+  atoms:
+    type: categorical
+    choices: [51, 101, 151]
+    default: 51
+
+# ========= Environment/Risk Search =========
+env:
+  transaction_cost:
+    type: uniform
+    low: 0.0003
+    high: 0.0015
+    default: 0.001
+  slippage:
+    type: uniform
+    low: 0.0001
+    high: 0.001
+    default: 0.0005
+  max_drawdown:
+    type: uniform
+    low: 0.05
+    high: 0.20
+    default: 0.10
+  per_leg_stop_loss:
+    type: uniform
+    low: 0.02
+    high: 0.08
+    default: 0.05
+  flatten_before_close_minutes:
+    type: categorical
+    choices: [10, 15, 20, 30]
+    default: 15
+
+# ========= Feature Engineering =========
+features:
+  window_size:
+    type: categorical
+    choices: [15, 30, 60]
+    default: 30
+  use_bollinger:
+    type: categorical
+    choices: [true, false]
+    default: true
+  use_macd:
+    type: categorical
+    choices: [true, false]
+    default: true
+  use_rsi:
+    type: categorical
+    choices: [true, false]
+    default: true
+  use_iv:
+    type: categorical
+    choices: [true, false]
+    default: true
+  use_greeks:
+    type: categorical
+    choices: [true, false]
+    default: true
+  use_regime:
+    type: categorical
+    choices: [true, false]
+    default: true
+
+# ========= Optuna/Meta =========
+optuna:
+  n_trials: 30
+  direction: maximize
+  metric: total_return
+  sampler: TPE
+  storage_path: optuna_trials.db
+

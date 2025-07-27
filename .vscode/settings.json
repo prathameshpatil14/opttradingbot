@@ -1,0 +1,12 @@
+{
+  // set your workspace interpreter
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  // for some versions of the Python extension:
+  "python.pythonPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+
+  // tell Pylance where to find site-packages
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}\\.venv\\Lib\\site-packages",
+    "${workspaceFolder}\\.venv\\lib\\site-packages"
+  ]
+}

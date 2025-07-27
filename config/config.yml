@@ -1,0 +1,124 @@
+# config/config.yml
+
+# ========== MARKET SETTINGS ==========
+market:
+  symbols: ["NIFTY", "BANKNIFTY", "FINNIFTY"]
+  expiry_days_before: 2           # Close positions before expiry (days)
+  start_time: "09:20"
+  end_time: "15:25"
+  interval_minutes: 1             # Candle/bar interval for OHLCV
+  trading_days: 252               # Per year (for annualized Sharpe etc.)
+
+# ========== ENVIRONMENT FEATURES ==========
+features:
+  use_ohlcv: true
+  use_bollinger: true
+  use_macd: true
+  use_rsi: true
+  use_iv: true
+  use_greeks: true
+  use_regime: true
+  feature_window: 30              # Lookback for rolling features
+
+# ========== RL AGENT SELECTION ==========
+agent:
+  type: "ensemble"                # Options: dqn, ppo, a2c, c51, ensemble
+  dqn_weight: 0.5
+  ppo_weight: 0.5
+  voting: "weighted"              # Options: majority, weighted, mean_q
+  retrain_every_minutes: 30
+  save_checkpoints: true
+  checkpoint_dir: "models"
+
+# ========== DQN PARAMETERS ==========
+dqn:
+  lr: 0.0005
+  gamma: 0.99
+  tau: 0.005
+  buffer_size: 100000
+  batch_size: 64
+  epsilon_start: 1.0
+  epsilon_min: 0.05
+  epsilon_decay: 0.995
+  update_target_every: 500
+  num_quantiles: 51
+  prioritized_replay: true
+  double_dqn: true
+
+# ========== PPO PARAMETERS ==========
+ppo:
+  lr: 0.0003
+  gamma: 0.99
+  batch_size: 64
+  n_steps: 2048
+  ent_coef: 0.01
+  policy_kwargs:
+    net_arch: [256, 256]
+
+# ========== RISK MANAGEMENT ==========
+risk:
+  max_drawdown: 0.10                # Halt trading if equity falls >10% from peak
+  per_leg_stop_loss: 0.05           # 5% per-leg stop loss
+  transaction_cost: 0.001           # e.g. 0.1% per round trip
+  slippage: 0.0005                  # Slippage per trade
+  min_equity: 0.2                   # Halt trading if equity falls below 20%
+  flatten_before_close_minutes: 15  # Force flatten positions before close
+
+# ========== BACKTEST/AUDIT ==========
+backtest:
+  start_date: "2020-01-01"
+  end_date: "2024-06-01"
+  save_audit: true
+  log_dir: "logs"
+  audit_every_step: true
+  synthetic_events: true             # Inject VIX spike, crash, etc.
+
+# ========== OPTUNA TUNING ==========
+optuna:
+  n_trials: 30
+  direction: "maximize"
+  metric: "total_return"             # Could use sharpe, cvar_95, etc.
+  storage_path: "optuna_trials.db"
+
+# ========== DATA SOURCES ==========
+data:
+  historical_data_path: "data/historical_data.csv"
+  option_chain_path: "data/option_chain_snapshots/"
+  regime_label_path: "data/regime_labels.csv"
+  update_freq_minutes: 60
+  fetch_new_data: true
+
+# ========== LOGGING ==========
+logging:
+  level: "INFO"
+  audit_trades: true
+  log_to_file: true
+  log_file: "logs/bot.log"
+
+# ========== LIVE/PAPER TRADING ==========
+live:
+  enable_live_trading: false
+  enable_paper_trading: true
+  api_keys_path: "config/keys.yml"
+  order_retry_limit: 3
+
+# ========== ENSEMBLE & REGIME VOTING ==========
+ensemble:
+  agents:
+    - "dqn"
+    - "ppo"
+  weights:
+    dqn: 0.6
+    ppo: 0.4
+  voting: "weighted"
+  regime_voting:
+    bull: ["dqn", "ppo"]
+    bear: ["ppo"]
+    volatile: ["dqn", "ppo"]
+
+# ========== SAFETY ==========
+safety:
+  fail_safe: true
+  halt_on_error: true
+  auto_restart: false
+
