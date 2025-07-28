@@ -4,3 +4,4 @@ logs/bot.log
 logs/
 models/
 config/keys.yml
+__pycache__/
