@@ -14,3 +14,9 @@ For Running th the bot in live market   >>>>>>>
 
 Switching to Live Trading in the Morning :-
 python main.py --mode live
+
+### Notes
+
+`OptionTradingEnv.step()` returns a reward value and an `info` dictionary.
+The dictionary now includes a `pnl` key containing the raw trade profit/loss
+separate from the shaped reward.

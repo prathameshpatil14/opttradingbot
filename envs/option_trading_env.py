@@ -98,8 +98,24 @@ class OptionTradingEnv(gym.Env):
         return state
 
     def step(self, action):
-        """
-        action: 0=hold, 1=long, 2=short, 3=flatten
+        """Execute one time step within the environment.
+
+        Parameters
+        ----------
+        action : int
+            0=hold, 1=long, 2=short, 3=flatten
+
+        Returns
+        -------
+        state : np.ndarray
+            Next observation from the environment.
+        reward : float
+            Shaped reward after transaction costs and risk controls.
+        done : bool
+            Whether the episode has terminated.
+        info : dict
+            Additional data including ``pnl`` which contains the raw trade
+            profit/loss separate from the reward.
         """
         info = {}
         done = False
@@ -177,6 +193,9 @@ class OptionTradingEnv(gym.Env):
             self.peak_price = 0
             position_change = True
 
+        # Record raw trade PnL before transaction costs
+        info["pnl"] = trade_pnl
+
         # Transaction cost/slippage (on any position change)
         if position_change:
             cost = self.transaction_cost * price + self.slippage * price
@@ -220,6 +239,7 @@ class OptionTradingEnv(gym.Env):
         info.update({
             "position": self.position,
             "entry_price": self.entry_price,
+            "pnl": trade_pnl,
             "reward": reward,
             "price": price,
             "minutes_left": minutes_left,
