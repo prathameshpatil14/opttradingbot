@@ -151,6 +151,7 @@ class BacktestRunner:
                 # Pass the environment so risk checks can access positions and equity
                 # break if the risk manager signals unsafe conditions
                 if not risk_manager(env, state):
+
                     logger.warning("Risk manager triggered circuit breaker. Stopping backtest.")
                     break
 

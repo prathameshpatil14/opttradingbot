@@ -14,3 +14,4 @@ For Running th the bot in live market   >>>>>>>
 
 Switching to Live Trading in the Morning :-
 python main.py --mode live
+
