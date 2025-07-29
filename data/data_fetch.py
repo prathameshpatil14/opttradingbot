@@ -5,6 +5,7 @@ import time
 import pandas as pd
 from datetime import datetime, timedelta
 from SmartApi import SmartConnect
+import holidays
 import pyotp
 import yaml
 from tqdm import tqdm
@@ -23,10 +24,12 @@ api.generateSession(client_id, pwd, otp)
 
 def fetch_ohlcv(symbol, exchange, token, start, end, interval):
     dfs = []
+    # Precompute list of Indian market holidays for the given period
+    ind_holidays = holidays.country_holidays('IN', years=range(start.year, end.year + 1))
     dt = start
     while dt <= end:
-        # Skip weekends as the API does not return data for these days
-        if dt.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
+        # Skip weekends and official market holidays
+        if dt.weekday() >= 5 or dt in ind_holidays:
             dt += timedelta(days=1)
             continue
 
