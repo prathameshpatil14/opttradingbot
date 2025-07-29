@@ -149,6 +149,8 @@ class BacktestRunner:
             # Risk management (stop if circuit breaker triggered)
             if risk_manager and hasattr(risk_manager, "__call__"):
                 # Pass the environment so risk checks can access positions and equity
+                # break if the risk manager signals unsafe conditions
+                if not risk_manager(env, state):
 
                     logger.warning("Risk manager triggered circuit breaker. Stopping backtest.")
                     break
