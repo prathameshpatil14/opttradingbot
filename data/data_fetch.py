@@ -25,6 +25,11 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
     dfs = []
     dt = start
     while dt <= end:
+        # Skip weekends as the API does not return data for these days
+        if dt.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
+            dt += timedelta(days=1)
+            continue
+
         dt_str = dt.strftime("%Y-%m-%d")
         params = {
             "exchange": exchange,
@@ -38,7 +43,10 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
         while not success and retry_count < 3:
             try:
                 data = api.getCandleData(params)
-                if "data" in data and data["data"]:
+                if isinstance(data, dict) and not data.get("status", True):
+                    # API returns status False for non-trading days
+                    print(f"No data for {symbol} {dt_str}: {data.get('message')}")
+                elif "data" in data and data["data"]:
                     day_df = pd.DataFrame(data["data"], columns=["date", "open", "high", "low", "close", "volume"])
                     day_df["symbol"] = symbol
                     dfs.append(day_df)
