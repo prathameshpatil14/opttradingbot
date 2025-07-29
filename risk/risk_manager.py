@@ -83,12 +83,13 @@ class RiskManager:
         return price * total_qty * (self.transaction_cost + self.slippage)
 
     def dynamic_position_size(self, confidence, base_size=1, min_size=0.25, max_size=2.0):
-        
+
         conf = np.clip(confidence, -1, 1)
         if conf >= 0:
             size = base_size + (max_size - base_size) * conf
         else:
-            size = base_size + (min_size - base_size) * conf
+            # When confidence is negative, scale position towards the minimum size
+            size = base_size + (min_size - base_size) * (-conf)
         return np.clip(size, min_size, max_size)
 
 

@@ -223,6 +223,8 @@ class DQNAgent:
     def save_checkpoint(self, name="dqn_agent.pth"):
         """Save agent weights and optimizer state."""
         save_path = os.path.join(self.checkpoint_dir, name)
+        # Ensure the checkpoint directory exists before saving
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
         torch.save({
             "q_net": self.q_net.state_dict(),
             "target_net": self.target_net.state_dict(),
