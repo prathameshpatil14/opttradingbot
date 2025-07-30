@@ -11,6 +11,7 @@ import pyotp
 import yaml
 from tqdm import tqdm
 from utils.logger import get_logger
+from utils.utils import totp_now
 
 logger = get_logger("DataFetch")
 
@@ -22,13 +23,13 @@ client_id = keys["client_id"]
 pwd = keys["password"]
 totp_key = keys.get("totp_secret") or keys.get("totp")  # support both keys
 
-otp = pyotp.TOTP(totp_key).now()
+otp = totp_now(totp_key)
 api = SmartConnect(api_key=api_key)
 api.generateSession(client_id, pwd, otp)
 
 def relogin():
     """Generate a fresh OTP and refresh the Smart API session."""
-    otp = pyotp.TOTP(totp_key).now()
+    otp = totp_now(totp_key)
     api.generateSession(client_id, pwd, otp)
     logger.info("Session refreshed via relogin().")
 
