@@ -6,8 +6,10 @@ import random
 import numpy as np
 import pandas as pd
 import torch
+import time
 from datetime import datetime
 from contextlib import contextmanager
+import requests
 from utils.logger import get_logger
 
 logger = get_logger("Utils")
@@ -178,4 +180,27 @@ def safe_call(fn, *args, **kwargs):
     except Exception as e:
         logger.error(f"safe_call exception in {fn.__name__}: {e}", exc_info=True)
         return None
+
+# ==== TIME/OTP HELPERS ====
+
+def current_utc_unixtime():
+    """Return current UTC time as Unix timestamp using worldtimeapi.org.
+
+    Falls back to local time if the request fails.
+    """
+    url = "http://worldtimeapi.org/api/timezone/Etc/UTC"
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            return int(resp.json().get("unixtime", time.time()))
+    except Exception as e:
+        logger.warning(f"Failed to fetch remote time: {e}")
+    return int(time.time())
+
+
+def totp_now(secret):
+    """Generate a TOTP using remote UTC time."""
+    ts = current_utc_unixtime()
+    import pyotp  # local import to avoid mandatory dependency when unused
+    return pyotp.TOTP(secret).at(ts)
 

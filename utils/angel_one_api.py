@@ -7,6 +7,7 @@ from SmartApi import SmartConnect
 import pyotp
 import yaml
 from utils.logger import get_logger
+from utils.utils import totp_now
 
 logger = get_logger("AngelOneAPI")
 
@@ -46,7 +47,7 @@ class AngelOneAPI:
     def _login(self):
         api = SmartConnect(api_key=self.api_key)
         try:
-            otp = pyotp.TOTP(self.totp_secret).now() if self.totp_secret else self.totp
+            otp = totp_now(self.totp_secret) if self.totp_secret else self.totp
             data = api.generateSession(self.client_id, self.password, otp)
             logger.info("AngelOne login successful.")
         except Exception as e:
