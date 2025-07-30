@@ -25,9 +25,9 @@ tqdm>=4.65
 APScheduler>=3.10
 
 # ===== BROKER/EXCHANGE APIs (Uncomment as needed) =====
-# smartapi-python>=1.0.2
-# angel-one-api>=1.0.0
-# kiteconnect>=4.1.0
+smartapi-python>=1.0.2
+angel-one-api>=1.0.0
+kiteconnect>=4.1.0
 
 # ===== DEVELOPMENT/DEBUGGING =====
 ipython
