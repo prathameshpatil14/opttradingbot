@@ -10,6 +10,9 @@ import requests
 import pyotp
 import yaml
 from tqdm import tqdm
+from utils.logger import get_logger
+
+logger = get_logger("DataFetch")
 
 # Read keys
 with open("config/keys.yml", "r") as f:
@@ -22,6 +25,12 @@ totp_key = keys.get("totp_secret") or keys.get("totp")  # support both keys
 otp = pyotp.TOTP(totp_key).now()
 api = SmartConnect(api_key=api_key)
 api.generateSession(client_id, pwd, otp)
+
+def relogin():
+    """Generate a fresh OTP and refresh the Smart API session."""
+    otp = pyotp.TOTP(totp_key).now()
+    api.generateSession(client_id, pwd, otp)
+    logger.info("Session refreshed via relogin().")
 
 def fetch_ohlcv(symbol, exchange, token, start, end, interval):
     dfs = []
@@ -44,15 +53,23 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
         }
         success = False
         retry_count = 0
-        while not success and retry_count < 3:
+        max_retries = 5
+        while not success and retry_count < max_retries:
             try:
                 data = api.getCandleData(params)
                 if isinstance(data, dict) and not data.get("status", True):
+                    if data.get("errorcode") == "AB1004":
+                        logger.info("Session expired (AB1004). Refreshing session.")
+                        relogin()
+                        retry_count += 1
+                        continue
                     msg = data.get("message", "")
                     if "Something Went Wrong" in msg:
                         print(f"API error for {symbol} {dt_str}: {msg}. Retrying...")
                         time.sleep(30)
                         retry_count += 1
+                        if retry_count >= 3:
+                            relogin()
                         continue
                     else:
                         # API returns status False for non-trading days
@@ -66,6 +83,8 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
                 print(f"Network error fetching {symbol} {dt_str}: {e}. Retrying...")
                 time.sleep(30)
                 retry_count += 1
+                if retry_count >= 3:
+                    relogin()
                 continue
             except Exception as e:
                 err = str(e)
@@ -73,6 +92,8 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
                     print(f"⚠️  Rate limit hit for {symbol} {dt_str}, waiting 60s and retrying...")
                     time.sleep(60)
                     retry_count += 1
+                    if retry_count >= 3:
+                        relogin()
                     continue
                 else:
                     print(f"Error fetching {symbol} {dt_str}: {e}")
