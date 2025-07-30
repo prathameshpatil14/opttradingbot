@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from SmartApi import SmartConnect
 import holidays
+import requests
 import pyotp
 import yaml
 from tqdm import tqdm
@@ -47,13 +48,25 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
             try:
                 data = api.getCandleData(params)
                 if isinstance(data, dict) and not data.get("status", True):
-                    # API returns status False for non-trading days
-                    print(f"No data for {symbol} {dt_str}: {data.get('message')}")
+                    msg = data.get("message", "")
+                    if "Something Went Wrong" in msg:
+                        print(f"API error for {symbol} {dt_str}: {msg}. Retrying...")
+                        time.sleep(30)
+                        retry_count += 1
+                        continue
+                    else:
+                        # API returns status False for non-trading days
+                        print(f"No data for {symbol} {dt_str}: {msg}")
                 elif "data" in data and data["data"]:
                     day_df = pd.DataFrame(data["data"], columns=["date", "open", "high", "low", "close", "volume"])
                     day_df["symbol"] = symbol
                     dfs.append(day_df)
                 success = True
+            except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
+                print(f"Network error fetching {symbol} {dt_str}: {e}. Retrying...")
+                time.sleep(30)
+                retry_count += 1
+                continue
             except Exception as e:
                 err = str(e)
                 if "exceeding access rate" in err or "Access denied" in err:
