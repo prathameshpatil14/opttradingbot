@@ -11,6 +11,14 @@ from utils.logger import get_logger
 logger = get_logger("AngelOneAPI")
 
 class AngelOneAPI:
+    """Wrapper around the Angel One SmartConnect API.
+
+    Credentials are loaded from ``config/keys.yml`` by default. The file may
+    specify either a ``totp`` field containing a one-time password or a
+    ``totp_secret`` field from which the OTP will be generated using
+    :mod:`pyotp` each time a session is created.
+    """
+
     def __init__(self, config_path="config/keys.yml", token_map_path="data/symbol_token_map.csv"):
         self.config_path = config_path
         self.token_map_path = token_map_path
@@ -22,9 +30,12 @@ class AngelOneAPI:
     def _load_credentials(self):
         with open(self.config_path, "r") as f:
             keys = yaml.safe_load(f)
+
         self.api_key = keys.get("api_key")
         self.client_id = keys.get("client_id")
         self.pin = keys.get("pin")
+        # Support both a direct TOTP value and a secret key
+        self.totp_secret = keys.get("totp_secret")
         self.totp = keys.get("totp")
         self.password = keys.get("password")
 
@@ -35,7 +46,8 @@ class AngelOneAPI:
     def _login(self):
         api = SmartConnect(api_key=self.api_key)
         try:
-            data = api.generateSession(self.client_id, self.password, self.totp)
+            otp = pyotp.TOTP(self.totp_secret).now() if self.totp_secret else self.totp
+            data = api.generateSession(self.client_id, self.password, otp)
             logger.info("AngelOne login successful.")
         except Exception as e:
             logger.error(f"AngelOne login failed: {e}")
