@@ -20,6 +20,11 @@ client_id = os.getenv("ANGEL_CLIENT_ID")
 pwd = os.getenv("ANGEL_PASSWORD")
 totp_key = os.getenv("ANGEL_TOTP_SECRET") or os.getenv("TOTP_SECRET") or os.getenv("TOTP")
 
+if not totp_key:
+    raise ValueError(
+        "TOTP secret not set; please define ANGEL_TOTP_SECRET"
+    )
+
 otp = totp_now(totp_key)
 api = SmartConnect(api_key=api_key)
 resp = api.generateSession(client_id, pwd, otp)
