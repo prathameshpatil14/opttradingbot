@@ -5,3 +5,4 @@ logs/
 models/
 config/keys.yml
 __pycache__/
+*.pyc
