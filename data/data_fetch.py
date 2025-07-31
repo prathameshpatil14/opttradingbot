@@ -8,7 +8,6 @@ from SmartApi import SmartConnect
 import holidays
 import requests
 from dotenv import load_dotenv
-from tqdm import tqdm
 from utils.logger import get_logger
 from utils.utils import totp_now
 
