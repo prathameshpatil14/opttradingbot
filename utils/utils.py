@@ -188,7 +188,7 @@ def current_utc_unixtime():
 
     Falls back to local time if the request fails.
     """
-    url = "http://worldtimeapi.org/api/timezone/Etc/UTC"
+    url = "https://worldtimeapi.org/api/timezone/Etc/UTC"
     try:
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
