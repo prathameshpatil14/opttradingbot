@@ -4,8 +4,7 @@ import time
 import os
 import pandas as pd
 from SmartApi import SmartConnect
-import pyotp
-import yaml
+from dotenv import load_dotenv
 from utils.logger import get_logger
 from utils.utils import totp_now
 
@@ -14,14 +13,13 @@ logger = get_logger("AngelOneAPI")
 class AngelOneAPI:
     """Wrapper around the Angel One SmartConnect API.
 
-    Credentials are loaded from ``config/keys.yml`` by default. The file may
-    specify either a ``totp`` field containing a one-time password or a
-    ``totp_secret`` field from which the OTP will be generated using
-    :mod:`pyotp` each time a session is created.
+    Credentials are loaded from environment variables. Use a ``.env`` file or
+    set ``ANGEL_API_KEY``, ``ANGEL_CLIENT_ID``, ``ANGEL_PASSWORD`` and
+    ``ANGEL_TOTP_SECRET`` in your shell environment.
     """
 
-    def __init__(self, config_path="config/keys.yml", token_map_path="data/symbol_token_map.csv"):
-        self.config_path = config_path
+    def __init__(self, token_map_path="data/symbol_token_map.csv"):
+        load_dotenv()
         self.token_map_path = token_map_path
         self._load_credentials()
         self.api = self._login()
@@ -29,21 +27,15 @@ class AngelOneAPI:
         self._load_token_map()
 
     def _load_credentials(self):
-        with open(self.config_path, "r") as f:
-            keys = yaml.safe_load(f)
-
-        self.api_key = keys.get("api_key")
-        self.client_id = keys.get("client_id")
-        self.pin = keys.get("pin")
+        """Read API credentials from environment variables."""
+        self.api_key = os.getenv("ANGEL_API_KEY")
+        self.client_id = os.getenv("ANGEL_CLIENT_ID")
+        self.pin = os.getenv("ANGEL_PIN")
         # Support both a direct TOTP value and a secret key
-        self.totp_secret = keys.get("totp_secret")
-        self.totp = keys.get("totp")
-        self.password = keys.get("password")
+        self.totp_secret = os.getenv("ANGEL_TOTP_SECRET")
+        self.totp = os.getenv("ANGEL_TOTP")
+        self.password = os.getenv("ANGEL_PASSWORD")
 
-    def _load_config(self, path):
-        with open(path, "r") as f:
-            return yaml.safe_load(f)
-    
     def _login(self):
         api = SmartConnect(api_key=self.api_key)
         try:

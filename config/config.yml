@@ -99,7 +99,7 @@ logging:
 live:
   enable_live_trading: false
   enable_paper_trading: true
-  api_keys_path: "config/keys.yml"
+  api_keys_path: null  # credentials now loaded from environment variables
   order_retry_limit: 3
 
 # ========== ENSEMBLE & REGIME VOTING ==========

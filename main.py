@@ -63,7 +63,7 @@ def fetch_live_data_from_angel_one(config):
     market_cfg = config.get("market", {})
     symbols = market_cfg.get("symbols", ["NIFTY"])
     expiry_days_before = market_cfg.get("expiry_days_before", 2)
-    angel = AngelOneAPI(config_path=config.get("live", {}).get("api_keys_path", "config/keys.yml"))
+    angel = AngelOneAPI()
     dfs = []
     for symbol in symbols:
         oc = angel.get_option_chain(symbol, None)

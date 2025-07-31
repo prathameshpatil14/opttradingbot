@@ -10,6 +10,20 @@ Install required packages including the broker APIs (`smartapi-python`,
 ```bash
 pip install -r requirements.txt
 ```
+
+### API credentials
+
+Create a `.env` file in the project root or export the following environment
+variables before running any scripts:
+
+```bash
+ANGEL_API_KEY=your_api_key
+ANGEL_CLIENT_ID=your_client_id
+ANGEL_PASSWORD=your_password
+ANGEL_TOTP_SECRET=your_totp_secret
+```
+
+These values are used by `data_fetch.py` and the `AngelOneAPI` wrapper.
 =============
 For tranning the bot >>>>>>
 Training the Bot Overnight :-
