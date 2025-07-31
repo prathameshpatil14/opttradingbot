@@ -184,17 +184,29 @@ def safe_call(fn, *args, **kwargs):
 # ==== TIME/OTP HELPERS ====
 
 def current_utc_unixtime():
-    """Return current UTC time as Unix timestamp using worldtimeapi.org.
+    """Return current UTC time as Unix timestamp.
 
-    Falls back to local time if the request fails.
+    The function attempts multiple public time APIs and falls back to the local
+    clock if all requests fail. This helps mitigate issues where a single time
+    service is unreachable.
     """
-    url = "http://worldtimeapi.org/api/timezone/Etc/UTC"
-    try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            return int(resp.json().get("unixtime", time.time()))
-    except Exception as e:
-        logger.warning(f"Failed to fetch remote time: {e}")
+    urls = [
+        "http://worldtimeapi.org/api/timezone/Etc/UTC",
+        "https://timeapi.io/api/Time/current/zone?timeZone=UTC",
+    ]
+
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                if "unixtime" in data:
+                    return int(data["unixtime"])
+                if "epochSeconds" in data:
+                    return int(data["epochSeconds"])
+        except Exception as e:
+            logger.warning(f"Failed to fetch remote time from {url}: {e}")
+
     return int(time.time())
 
 
