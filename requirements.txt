@@ -35,3 +35,4 @@ jupyter
 # ===== CSV/FILE UTILS =====
 python-dotenv>=1.0
 holidays>=0.76
+pyotp>=2.9

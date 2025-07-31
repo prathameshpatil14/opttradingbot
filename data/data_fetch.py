@@ -37,7 +37,7 @@ def fetch_ohlcv(symbol, exchange, token, start, end, interval):
     dt = start
     while dt <= end:
         # Skip weekends and official market holidays
-        if dt.weekday() >= 5 or dt in ind_holidays:
+        if dt.weekday() >= 5 or dt.date() in ind_holidays:
             dt += timedelta(days=1)
             continue
 
