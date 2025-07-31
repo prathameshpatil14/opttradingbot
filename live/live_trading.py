@@ -22,7 +22,7 @@ class LiveTradingEngine:
         self.config = config
         self.data_fetch_fn = data_fetch_fn
         self.risk_manager = risk_manager
-        self.broker = AngelOneAPI(config_path="config/keys.yml")
+        self.broker = AngelOneAPI()
 
         self.market = config.get("market", {})
         self.live_cfg = config.get("live", {})

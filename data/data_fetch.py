@@ -7,21 +7,19 @@ from datetime import datetime, timedelta
 from SmartApi import SmartConnect
 import holidays
 import requests
-import pyotp
-import yaml
+from dotenv import load_dotenv
 from tqdm import tqdm
 from utils.logger import get_logger
 from utils.utils import totp_now
 
 logger = get_logger("DataFetch")
 
-# Read keys
-with open("config/keys.yml", "r") as f:
-    keys = yaml.safe_load(f)
-api_key = keys["api_key"]
-client_id = keys["client_id"]
-pwd = keys["password"]
-totp_key = keys.get("totp_secret") or keys.get("totp")  # support both keys
+# Load credentials from environment or .env
+load_dotenv()
+api_key = os.getenv("ANGEL_API_KEY")
+client_id = os.getenv("ANGEL_CLIENT_ID")
+pwd = os.getenv("ANGEL_PASSWORD")
+totp_key = os.getenv("ANGEL_TOTP_SECRET") or os.getenv("TOTP_SECRET") or os.getenv("TOTP")
 
 otp = totp_now(totp_key)
 api = SmartConnect(api_key=api_key)
