@@ -22,12 +22,26 @@ totp_key = os.getenv("ANGEL_TOTP_SECRET") or os.getenv("TOTP_SECRET") or os.gete
 
 otp = totp_now(totp_key)
 api = SmartConnect(api_key=api_key)
-api.generateSession(client_id, pwd, otp)
+resp = api.generateSession(client_id, pwd, otp)
+if not resp.get("status"):
+    logger.error(
+        "Angel One login failed: %s (%s)",
+        resp.get("message"),
+        resp.get("errorcode"),
+    )
+    raise RuntimeError("Angel One login failed")
 
 def relogin():
     """Generate a fresh OTP and refresh the Smart API session."""
     otp = totp_now(totp_key)
-    api.generateSession(client_id, pwd, otp)
+    resp = api.generateSession(client_id, pwd, otp)
+    if not resp.get("status"):
+        logger.error(
+            "Angel One login failed: %s (%s)",
+            resp.get("message"),
+            resp.get("errorcode"),
+        )
+        raise RuntimeError("Angel One login failed")
     logger.info("Session refreshed via relogin().")
 
 def fetch_ohlcv(symbol, exchange, token, start, end, interval):
