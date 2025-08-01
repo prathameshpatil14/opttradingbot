@@ -184,22 +184,54 @@ def safe_call(fn, *args, **kwargs):
 # ==== TIME/OTP HELPERS ====
 
 def current_utc_unixtime():
-    """Return current UTC time as Unix timestamp using worldtimeapi.org.
+    """Return current UTC time as a Unix timestamp.
 
-    Falls back to local time if the request fails.
+    The local system clock is used first to avoid unnecessary network
+    requests. If remote providers are reachable and report a time that
+    differs from the local value by more than 60 seconds, the remote
+    timestamp is used instead. This guards against large clock drift
+    while keeping the common case fast.
     """
-    url = "https://worldtimeapi.org/api/timezone/Etc/UTC"
-    try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            return int(resp.json().get("unixtime", time.time()))
-    except Exception as e:
-        logger.warning(f"Failed to fetch remote time: {e}")
-    return int(time.time())
+
+    local_ts = int(time.time())
+
+    urls = [
+        "https://worldtimeapi.org/api/timezone/Etc/UTC",
+        "https://timeapi.io/api/Time/current/zone?timeZone=UTC",
+    ]
+
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                remote_ts = None
+                if "unixtime" in data:
+                    remote_ts = int(data["unixtime"])
+                elif "epochTime" in data:
+                    remote_ts = int(data["epochTime"])
+                elif "currentFileTime" in data:
+                    remote_ts = int(int(data["currentFileTime"]) / 1000)
+
+                if remote_ts is not None:
+                    if abs(remote_ts - local_ts) > 60:
+                        logger.warning(
+                            "Local time differs from remote by more than 60s; using remote time"
+                        )
+                        return remote_ts
+                    break
+        except Exception as e:
+            logger.warning(f"Failed to fetch remote time from {url}: {e}")
+
+    return local_ts
 
 
 def totp_now(secret):
-    """Generate a TOTP using remote UTC time."""
+    """Generate a TOTP using UTC time.
+
+    Relies on :func:`current_utc_unixtime`, which uses the local clock and
+    only falls back to remote providers if a large drift is detected.
+    """
     ts = current_utc_unixtime()
     import pyotp  # local import to avoid mandatory dependency when unused
     return pyotp.TOTP(secret).at(ts)
