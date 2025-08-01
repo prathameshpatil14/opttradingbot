@@ -41,6 +41,18 @@ class AngelOneAPI:
         try:
             otp = totp_now(self.totp_secret) if self.totp_secret else self.totp
             data = api.generateSession(self.client_id, self.password, otp)
+            if not data.get("status"):
+                logger.warning("Initial AngelOne login failed; retrying with time sync.")
+                otp = (
+                    totp_now(self.totp_secret, force_sync=True)
+                    if self.totp_secret
+                    else self.totp
+                )
+                data = api.generateSession(self.client_id, self.password, otp)
+                if not data.get("status"):
+                    raise RuntimeError(
+                        f"AngelOne login failed: {data.get('message')} ({data.get('errorcode')})"
+                    )
             logger.info("AngelOne login successful.")
         except Exception as e:
             logger.error(f"AngelOne login failed: {e}")

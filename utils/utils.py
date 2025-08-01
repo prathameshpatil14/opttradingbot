@@ -14,6 +14,11 @@ from utils.logger import get_logger
 
 logger = get_logger("Utils")
 
+# Cache for remote time sync
+_TIME_CACHE = {"offset": 0, "fetched_at": 0, "failures": 0}
+_TIME_CACHE_TTL = 600  # 10 minutes
+_TIME_MAX_FAILURES = 3
+
 # ==== CONFIG LOADING ====
 
 def load_yaml(path):
@@ -183,17 +188,30 @@ def safe_call(fn, *args, **kwargs):
 
 # ==== TIME/OTP HELPERS ====
 
-def current_utc_unixtime():
+def current_utc_unixtime(force_sync=False):
     """Return current UTC time as a Unix timestamp.
 
     The local system clock is used first to avoid unnecessary network
-    requests. If remote providers are reachable and report a time that
-    differs from the local value by more than 60 seconds, the remote
-    timestamp is used instead. This guards against large clock drift
-    while keeping the common case fast.
+    requests. If a cached offset from a previous successful remote
+    request is available and not expired, that value is used. Remote
+    providers are queried at most every ``_TIME_CACHE_TTL`` seconds or
+    when ``force_sync`` is ``True`` (e.g. after a failed login). If
+    remote fetch repeatedly fails, the function falls back to local time.
     """
 
+    global _TIME_CACHE
+
     local_ts = int(time.time())
+    now = time.time()
+
+    # Use cached offset if recent and not forced to resync
+    if (
+        _TIME_CACHE["fetched_at"]
+        and not force_sync
+        and now - _TIME_CACHE["fetched_at"] < _TIME_CACHE_TTL
+        and _TIME_CACHE["failures"] < _TIME_MAX_FAILURES
+    ):
+        return int(local_ts + _TIME_CACHE["offset"])
 
     urls = [
         "https://worldtimeapi.org/api/timezone/Etc/UTC",
@@ -214,6 +232,13 @@ def current_utc_unixtime():
                     remote_ts = int(int(data["currentFileTime"]) / 1000)
 
                 if remote_ts is not None:
+                    _TIME_CACHE.update(
+                        {
+                            "offset": remote_ts - local_ts,
+                            "fetched_at": now,
+                            "failures": 0,
+                        }
+                    )
                     if abs(remote_ts - local_ts) > 60:
                         logger.warning(
                             "Local time differs from remote by more than 60s; using remote time"
@@ -222,17 +247,22 @@ def current_utc_unixtime():
                     break
         except Exception as e:
             logger.warning(f"Failed to fetch remote time from {url}: {e}")
+            _TIME_CACHE["failures"] += 1
 
-    return local_ts
+    if _TIME_CACHE["failures"] >= _TIME_MAX_FAILURES:
+        return local_ts
+
+    # Use cached offset if available (may be zero)
+    return int(local_ts + _TIME_CACHE["offset"])
 
 
-def totp_now(secret):
+def totp_now(secret, force_sync=False):
     """Generate a TOTP using UTC time.
 
     Relies on :func:`current_utc_unixtime`, which uses the local clock and
     only falls back to remote providers if a large drift is detected.
     """
-    ts = current_utc_unixtime()
+    ts = current_utc_unixtime(force_sync=force_sync)
     import pyotp  # local import to avoid mandatory dependency when unused
     return pyotp.TOTP(secret).at(ts)
 

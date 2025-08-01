@@ -29,16 +29,8 @@ otp = totp_now(totp_key)
 api = SmartConnect(api_key=api_key)
 resp = api.generateSession(client_id, pwd, otp)
 if not resp.get("status"):
-    logger.error(
-        "Angel One login failed: %s (%s)",
-        resp.get("message"),
-        resp.get("errorcode"),
-    )
-    raise RuntimeError("Angel One login failed")
-
-def relogin():
-    """Generate a fresh OTP and refresh the Smart API session."""
-    otp = totp_now(totp_key)
+    logger.warning("Initial login failed, retrying with time sync.")
+    otp = totp_now(totp_key, force_sync=True)
     resp = api.generateSession(client_id, pwd, otp)
     if not resp.get("status"):
         logger.error(
@@ -47,6 +39,22 @@ def relogin():
             resp.get("errorcode"),
         )
         raise RuntimeError("Angel One login failed")
+
+def relogin():
+    """Generate a fresh OTP and refresh the Smart API session."""
+    otp = totp_now(totp_key)
+    resp = api.generateSession(client_id, pwd, otp)
+    if not resp.get("status"):
+        logger.warning("Relogin failed, retrying with time sync.")
+        otp = totp_now(totp_key, force_sync=True)
+        resp = api.generateSession(client_id, pwd, otp)
+        if not resp.get("status"):
+            logger.error(
+                "Angel One login failed: %s (%s)",
+                resp.get("message"),
+                resp.get("errorcode"),
+            )
+            raise RuntimeError("Angel One login failed")
     logger.info("Session refreshed via relogin().")
 
 def fetch_ohlcv(symbol, exchange, token, start, end, interval):
