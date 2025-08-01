@@ -133,26 +133,45 @@ symbol_tokens = {
     "FINNIFTY": "99926044"
 }
 
+DATA_PATH = "data/historical_data.csv"
+MONTHS_TO_FETCH = 6
+
+existing_df = pd.DataFrame()
+if os.path.exists(DATA_PATH):
+    try:
+        existing_df = pd.read_csv(DATA_PATH)
+        existing_df["date"] = pd.to_datetime(existing_df["date"], errors="coerce")
+    except Exception as e:
+        logger.warning(f"Failed to load existing data: {e}")
+
 end_date = datetime.today()
-YEARS_TO_FETCH = 10  # Number of years
+min_start = end_date - timedelta(days=30 * MONTHS_TO_FETCH)
+
 all_df = []
 
 for symbol, token in symbol_tokens.items():
-    curr_end = end_date
-    for year in range(YEARS_TO_FETCH):
-        curr_start = curr_end - timedelta(days=365)
-        print(f"Fetching {symbol} from {curr_start.date()} to {curr_end.date()} (year {year+1}/{YEARS_TO_FETCH})")
-        df = fetch_ohlcv(symbol, "NSE", token, curr_start, curr_end, "ONE_MINUTE")
-        if df.empty:
-            print(f"No data for {symbol} from {curr_start.date()} to {curr_end.date()}. Stopping further fetch for this symbol.")
-            break
+    start_dt = min_start
+    if not existing_df.empty:
+        sym_df = existing_df[existing_df["symbol"] == symbol]
+        if not sym_df.empty:
+            last_date = sym_df["date"].max().normalize() + timedelta(days=1)
+            if last_date > start_dt:
+                start_dt = last_date
+    if start_dt > end_date:
+        print(f"Data for {symbol} already up to date. Skipping fetch.")
+        continue
+
+    print(f"Fetching {symbol} from {start_dt.date()} to {end_date.date()}")
+    df = fetch_ohlcv(symbol, "NSE", token, start_dt, end_date, "ONE_MINUTE")
+    if not df.empty:
         all_df.append(df)
-        curr_end = curr_start - timedelta(days=1)  # Move window back by 1 day
 
 if all_df:
-    full_df = pd.concat(all_df, ignore_index=True)
-    os.makedirs("data", exist_ok=True)
-    full_df.to_csv("data/historical_data.csv", index=False)
+    new_df = pd.concat(all_df, ignore_index=True)
+    full_df = pd.concat([existing_df, new_df], ignore_index=True)
+    full_df.drop_duplicates(subset=["date", "symbol"], keep="last", inplace=True)
+    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+    full_df.to_csv(DATA_PATH, index=False)
     print("✅ Done! Data saved to data/historical_data.csv")
 else:
     print("❌ No data was fetched for any symbol!")
